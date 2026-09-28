@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#181715">
+  <title>Márcio & Paula Delivery · Cerveja gelada em Gravatá</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      future: { hoverOnlyWhenSupported: true }, // no celular o hover não fica "grudado" depois do toque
+      theme: { extend: {
+        fontFamily: { sans: ['Outfit', 'system-ui', 'sans-serif'] },
+        colors: {
+          gold: { DEFAULT: '#F6B40E', soft: '#FFCB3D' },
+          ink: '#181715',                             // fundo carvão (nada de preto puro)
+          coal: { DEFAULT: '#221F1C', 2: '#2C2925' }, // cards e painéis
+          cream: '#F5EFE3',
+        },
+        boxShadow: {
+          soft: '0 18px 40px -24px rgba(0,0,0,.9), 0 2px 8px -4px rgba(0,0,0,.35)',
+          lift: '0 28px 56px -24px rgba(0,0,0,.95), 0 6px 14px -6px rgba(0,0,0,.4)',
+          glow: '0 10px 26px -10px rgba(246,180,14,.55)',
+        },
+      } },
+    };
+  </script>
+  <style>
+    [hidden] { display: none !important; }
+    html { scroll-behavior: smooth; }
+    :focus-visible { outline: 2px solid #F6B40E; outline-offset: 3px; }
+
+    /* Botões: sobem no hover (só com mouse) e afundam no toque */
+    .btn { transition: transform .18s ease, background-color .2s ease, box-shadow .2s ease, color .2s ease; -webkit-tap-highlight-color: transparent; }
+    @media (hover: hover) { .btn:hover { transform: translateY(-2px); } }
+    .btn:active { transform: translateY(1px) scale(.96); transition-duration: .05s; }
+
+    /* Carrinho: sobe como bottom sheet no celular, surge com fade no computador */
+    @keyframes sobe    { from { transform: translateY(100%); } }
+    @keyframes desce   { to   { transform: translateY(100%); } }
+    @keyframes surge   { from { opacity: 0; transform: translateY(24px) scale(.97); } }
+    @keyframes some    { to   { opacity: 0; transform: translateY(24px) scale(.97); } }
+    @keyframes aparece { from { opacity: 0; } }
+    @keyframes esvai   { to   { opacity: 0; } }
+    #modal[open]            { animation: sobe .42s cubic-bezier(.22, 1, .36, 1); }
+    #modal[open]::backdrop  { animation: aparece .42s ease; }
+    #modal.saindo           { animation: desce .26s cubic-bezier(.55, 0, 1, .45) forwards; }
+    #modal.saindo::backdrop { animation: esvai .26s ease forwards; }
+    @media (min-width: 640px) {
+      #modal[open]  { animation-name: surge; }
+      #modal.saindo { animation-name: some; }
+    }
+    #barra:not([hidden]) { animation: sobe .42s cubic-bezier(.22, 1, .36, 1); }
+
+    /* Toast: aparece logo acima da barra do carrinho */
+    #toast { bottom: calc(7.25rem + env(safe-area-inset-bottom)); max-width: calc(100% - 2.5rem); opacity: 0; transform: translateY(12px) scale(.96); transition: opacity .25s ease, transform .35s cubic-bezier(.22, 1, .36, 1); }
+    #toast.mostra { opacity: 1; transform: none; }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      #modal[open], #barra:not([hidden]) { animation-name: aparece; }
+      #modal.saindo { animation-name: esvai; }
+      #toast { transform: none; }
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-ink pb-36 font-sans text-cream antialiased selection:bg-gold selection:text-ink">
+
+  <!-- Ícone do WhatsApp (usado com <use href="#wa">) -->
+  <svg hidden><symbol id="wa" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.3-.4.8-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2c0 1.3.9 2.5 1.1 2.7.1.2 1.8 2.8 4.4 3.9 1.6.7 2.3.8 3.1.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3Z"/></symbol></svg>
+
+  <!-- Hero -->
+  <header class="relative overflow-hidden px-5 pb-12 pt-12 text-center">
+    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_50%_at_50%_0%,rgba(246,180,14,0.18),transparent_70%)]"></div>
+
+    <!-- Logo Márcio & Paula (recriada em SVG, "Mercearia" → "Delivery") -->
+    <svg viewBox="70 160 1114 950" role="img" aria-label="Márcio & Paula Delivery" class="relative mx-auto w-52 text-cream sm:w-64">
+      <!-- Monograma MP -->
+      <path fill="currentColor" d="M235,460 Q235,420 275,420 L330,420 L525,560 L706,424 L706,586 L525,706 L362,574 L362,800 Q362,840 322,840 L275,840 Q235,840 235,800 Z"/>
+      <g fill="#F6B40E">
+        <path d="M386,602 L505,700 L505,805 Q505,840 470,840 L421,840 Q386,840 386,805 Z"/>
+        <path fill-rule="evenodd" d="M718,420 L865,420 A150,150 0 0 1 865,720 L718,720 L718,805 Q718,840 683,840 L636,840 Q601,840 601,805 L601,668 L718,592 Z M718,528 L848,528 A42,42 0 0 1 848,612 L718,612 Z"/>
+      </g>
+      <!-- Toldo por cima, com contorno na cor do fundo separando do monograma -->
+      <g stroke="#181715" stroke-width="18" stroke-linejoin="round" paint-order="stroke">
+        <rect x="295" y="172" width="655" height="36" rx="18" fill="currentColor" stroke="none"/>
+        <path fill="currentColor" d="M300,222 L412,222 L378,390 A83,83 0 0 1 212,390 Z"/>
+        <path fill="#F6B40E" d="M424,222 L544,222 L534,390 A78,78 0 0 1 380,390 Z"/>
+        <path fill="currentColor" d="M556,222 L688,222 L704,390 A79,79 0 0 1 546,390 Z"/>
+        <path fill="#F6B40E" d="M700,222 L820,222 L868,390 A78,78 0 0 1 712,390 Z"/>
+        <path fill="currentColor" d="M832,222 L944,222 L1040,390 A83,83 0 0 1 874,390 Z"/>
+      </g>
+      <text x="627" y="1000" text-anchor="middle" textLength="1080" lengthAdjust="spacingAndGlyphs"
+            font-family="Outfit, sans-serif" font-weight="800" font-size="148" fill="currentColor">MÁRCIO <tspan fill="#F6B40E">&amp;</tspan> PAULA</text>
+      <rect x="112" y="1058" width="220" height="14" rx="7" fill="#F6B40E"/>
+      <rect x="922" y="1058" width="220" height="14" rx="7" fill="#F6B40E"/>
+      <text x="627" y="1086" text-anchor="middle" textLength="500" lengthAdjust="spacing"
+            font-family="Outfit, sans-serif" font-weight="600" font-size="66" fill="currentColor">DELIVERY</text>
+    </svg>
+
+    <h1 class="relative mt-8 text-3xl font-extrabold tracking-tight sm:text-4xl">Bora pedir uma <span class="text-gold">gelada</span>?</h1>
+    <p class="relative mx-auto mt-3 max-w-sm text-base leading-relaxed text-cream/70">
+      Escolhe aqui embaixo, manda pro nosso Zap e a gente leva sua cerveja trincando até a porta de casa.
+    </p>
+    <div class="relative mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+      <a href="#cardapio" class="btn inline-flex h-14 w-full max-w-xs items-center justify-center gap-2 rounded-2xl bg-gold px-7 text-lg font-bold text-ink shadow-glow hover:bg-gold-soft sm:w-auto">
+        Ver as geladas <span aria-hidden="true">↓</span>
+      </a>
+      <a href="https://wa.me/5581994377018" class="btn inline-flex h-14 w-full max-w-xs items-center justify-center gap-2.5 rounded-2xl bg-coal px-6 font-semibold text-cream shadow-soft ring-1 ring-white/10 hover:bg-coal-2 sm:w-auto">
+        <svg class="h-5 w-5 text-[#25D366]" aria-hidden="true"><use href="#wa"/></svg>
+        Pedir pelo WhatsApp
+      </a>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-6xl px-5">
+    <!-- Informações da loja -->
+    <section aria-label="Informações da loja" class="grid gap-4 md:grid-cols-3">
+      <div class="flex items-center gap-4 rounded-[1.75rem] bg-coal p-5 shadow-soft ring-1 ring-white/5">
+        <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gold/10 text-gold">
+          <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        </span>
+        <div class="min-w-0 flex-1">
+          <p class="text-sm text-cream/50">A gente abre</p>
+          <p class="font-semibold">Das 10h às 18h</p>
+        </div>
+        <span id="status" class="shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold"></span>
+      </div>
+      <a href="https://www.google.com/maps/search/?api=1&query=Rua+do+Cruzeiro+232+Gravat%C3%A1+PE" target="_blank" rel="noopener" class="flex items-center gap-4 rounded-[1.75rem] bg-coal p-5 shadow-soft ring-1 ring-white/5 transition hover:ring-gold/30">
+        <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gold/10 text-gold">
+          <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 1 1 14 0c0 4.8-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg>
+        </span>
+        <div class="min-w-0 flex-1">
+          <p class="text-sm text-cream/50">Onde fica</p>
+          <p class="font-semibold leading-snug">Rua do Cruzeiro, 232</p>
+          <p class="text-sm text-cream/55">Gravatá · PE</p>
+        </div>
+        <span class="shrink-0 text-sm font-semibold text-gold">Ver no mapa</span>
+      </a>
+      <a href="https://wa.me/5581994377018" class="flex items-center gap-4 rounded-[1.75rem] bg-coal p-5 shadow-soft ring-1 ring-white/5 transition hover:ring-gold/30">
+        <span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#25D366]/10 text-[#25D366]">
+          <svg class="h-6 w-6" aria-hidden="true"><use href="#wa"/></svg>
+        </span>
+        <div class="min-w-0 flex-1">
+          <p class="text-sm text-cream/50">Prefere conversar?</p>
+          <p class="font-semibold">(81) 99437-7018</p>
+        </div>
+        <span class="shrink-0 text-sm font-semibold text-gold">Chamar</span>
+      </a>
+    </section>
+
+    <!-- Cardápio -->
+    <div id="cardapio" class="mt-14 scroll-mt-4">
+      <p class="font-medium text-gold">Direto da geladeira</p>
+      <h2 class="mt-1 text-3xl font-extrabold tracking-tight">Escolhe a sua</h2>
+    </div>
+    <nav id="categorias" aria-label="Tipos de cerveja" class="sticky top-0 z-10 -mx-5 mt-4 flex gap-2.5 overflow-x-auto bg-ink/85 px-5 py-3 backdrop-blur-xl [scrollbar-width:none]"></nav>
+    <div id="catalogo"></div>
+  </main>
+
+  <footer class="mx-auto mt-20 max-w-6xl px-5 text-center text-sm leading-relaxed text-cream/40">
+    <p class="text-base font-semibold text-cream/70">Márcio & Paula Delivery</p>
+    <p class="mt-1">Rua do Cruzeiro, 232 · Gravatá, PE · das 10h às 18h</p>
+    <a href="https://wa.me/5581994377018" class="inline-flex min-h-11 items-center gap-1.5 text-cream/60 transition hover:text-cream"><svg class="h-4 w-4 text-[#25D366]" aria-hidden="true"><use href="#wa"/></svg>(81) 99437-7018</a>
+    <p class="mt-2 text-xs">Beba com moderação. Venda proibida para menores de 18 anos.<br>Fotos meramente ilustrativas.</p>
+  </footer>
+
+  <!-- Toast ("foi pro carrinho") -->
+  <div id="toast" role="status" aria-live="polite" class="pointer-events-none fixed inset-x-0 z-30 mx-auto w-fit rounded-2xl bg-cream px-5 py-3.5 text-center font-semibold text-ink shadow-lift"></div>
+
+  <!-- Barra flutuante do carrinho -->
+  <div id="barra" hidden class="fixed inset-x-0 bottom-0 z-20 px-4 pt-3" style="padding-bottom:max(1rem, env(safe-area-inset-bottom))">
+    <button id="abrir" class="btn mx-auto flex w-full max-w-xl items-center gap-3 rounded-[1.5rem] bg-coal-2/90 p-2.5 pl-3 text-left shadow-lift ring-1 ring-gold/25 backdrop-blur-xl">
+      <span id="barraQtd" class="grid h-12 min-w-12 place-items-center rounded-2xl bg-gold/15 px-2 text-lg font-bold text-gold"></span>
+      <span class="flex-1 leading-tight">
+        <span class="block text-sm text-cream/55">Seu pedido</span>
+        <span id="barraTotal" class="text-lg font-bold"></span>
+      </span>
+      <span class="rounded-2xl bg-gold px-5 py-3.5 font-bold text-ink">Ver meu pedido</span>
+    </button>
+  </div>
+
+  <!-- Carrinho: bottom sheet no celular, modal no desktop -->
+  <dialog id="modal" aria-labelledby="tituloPedido" class="m-0 mt-auto w-full max-w-full rounded-t-[2rem] bg-coal p-0 text-cream shadow-lift ring-1 ring-white/5 backdrop:bg-black/60 backdrop:backdrop-blur-sm sm:m-auto sm:max-w-lg sm:rounded-[2rem]">
+    <div class="px-6 pt-4 sm:px-7 sm:pt-7" style="padding-bottom:max(1.5rem, env(safe-area-inset-bottom))">
+      <div class="mx-auto mb-5 h-1.5 w-12 rounded-full bg-white/15 sm:hidden"></div>
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <h2 id="tituloPedido" class="text-2xl font-bold">Seu pedido</h2>
+          <p id="subPedido" class="mt-0.5 text-sm text-cream/55">Confere aí se tá tudo certo.</p>
+        </div>
+        <button id="fechar" aria-label="Fechar" class="btn grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/5 text-cream/70 hover:bg-white/10 hover:text-cream">✕</button>
+      </div>
+
+      <div id="cheio">
+        <ul id="itens" class="mt-3 max-h-[45vh] divide-y divide-white/5 overflow-y-auto"></ul>
+        <div class="mt-2 flex items-end justify-between gap-4 border-t border-white/10 pt-5">
+          <div>
+            <p class="text-cream/70">Total das bebidas</p>
+            <p class="text-xs text-cream/45">A entrega a gente combina no Zap</p>
+          </div>
+          <span id="total" class="text-3xl font-extrabold text-gold"></span>
+        </div>
+        <!-- Mesma aba: nova aba (_blank) é bloqueada em navegadores internos (Instagram/Facebook) e prévias -->
+        <a id="finalizar" class="btn mt-6 flex h-14 items-center justify-center gap-2.5 rounded-2xl bg-gold text-lg font-bold text-ink shadow-glow hover:bg-gold-soft">
+          <svg class="h-6 w-6" aria-hidden="true"><use href="#wa"/></svg>
+          Mandar pro Zap
+        </a>
+        <p id="aviso" hidden class="mt-4 rounded-2xl bg-red-400/10 px-4 py-3 text-center text-sm text-red-200">A gente tá fechado agora, mas pode mandar! Respondemos a partir das 10h.</p>
+        <p class="mt-4 text-center text-sm text-cream/45">Abre o WhatsApp com a mensagem prontinha. É só apertar enviar.</p>
+        <p id="fallback" hidden class="text-center text-sm text-cream/45">Sem WhatsApp no computador? <a id="finalizarWeb" class="inline-flex min-h-11 items-center font-semibold text-gold underline underline-offset-4">Abre pelo navegador</a></p>
+      </div>
+
+      <div id="vazio" hidden class="pb-4 pt-10 text-center">
+        <p class="text-6xl" aria-hidden="true">🍺</p>
+        <p class="mt-5 text-lg font-semibold">Seu carrinho tá vazio.</p>
+        <p class="mt-1 text-cream/60">Que tal adicionar umas cervejas?</p>
+        <button id="voltar" class="btn mt-7 h-12 rounded-2xl bg-gold px-7 font-bold text-ink shadow-glow hover:bg-gold-soft">Ver as cervejas</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+    const WHATSAPP = '5581994377018';
+    // Celular: wa.me abre o app direto. Computador: whatsapp:// abre o app do WhatsApp direto na conversa (sem WhatsApp Web)
+    const CELULAR = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const WA_CHAT = CELULAR ? `https://wa.me/${WHATSAPP}?text=` : `whatsapp://send?phone=${WHATSAPP}&text=`;
+
+    // un: unidades por caixa (gera o selo e o preço por unidade) · cada: como a gente chama a unidade
+    const grupos = [
+      { id: 'latao', titulo: 'Latões 473ml', sub: 'Caixa com 12, pra resenha render', un: 12, pack: '12 latas', cada: 'o latão' },
+      { id: 'long', titulo: 'Long neck 330ml', sub: 'Caixa com 6 garrafinhas', un: 6, pack: '6 garrafas', cada: 'a garrafa' },
+      { id: 'lata', titulo: 'Latinhas 350ml', sub: 'Caixa com 12, a clássica', un: 12, pack: '12 latas', cada: 'a lata' },
+    ];
+
+    // g: grupo · img: foto ilustrativa · z: zoom para igualar o tamanho visual entre fotos
+    const produtos = [
+      { g: 'latao', nome: 'Cerveja Itaipava lata 473ml cx c/ 12un', preco: 42, z: 1, img: 'https://zaffari.vteximg.com.br/arquivos/ids/321057/1018546-00.jpg.jpg' },
+      { g: 'latao', nome: 'Cerveja Brahma lata 473ml cx c/ 12un', preco: 55, z: 1.3, img: 'https://savegnagoio.vteximg.com.br/arquivos/ids/448626/CervejaBrahmaChoppPilsen473mlLat1.jpg' },
+      { g: 'latao', nome: 'Cerveja Skol lata 473ml cx c/ 12un', preco: 54, z: 1.3, img: 'https://savegnagoio.vteximg.com.br/arquivos/ids/447157/CervejaSkolPilsenLata473ml1.jpg' },
+      { g: 'latao', nome: 'Cerveja Original lata 473ml cx c/ 12un', preco: 67, z: 1, img: 'https://zaffari.vteximg.com.br/arquivos/ids/324233/1104803-00.jpg.jpg' },
+      { g: 'latao', nome: 'Cerveja Budweiser lata 473ml cx c/ 12un', preco: 63, z: 1, img: 'https://zaffari.vteximg.com.br/arquivos/ids/321417/1029353-00.jpg.jpg' },
+      { g: 'long', nome: 'Cerveja Heineken long 330ml cx c/ 6un', preco: 42, z: 1.6, img: 'https://zaffari.vteximg.com.br/arquivos/ids/318753/1055431-00.jpg.jpg' },
+      { g: 'long', nome: 'Cerveja Budweiser long 330ml cx c/ 6un', preco: 39, z: 1.6, img: 'https://zaffari.vteximg.com.br/arquivos/ids/299138/1062760-00.jpg' },
+      { g: 'long', nome: 'Cerveja Corona long 330ml cx c/ 6un', preco: 45, z: 1.5, img: 'https://zaffari.vteximg.com.br/arquivos/ids/299694/1075963-00.jpg' },
+      { g: 'lata', nome: 'Cerveja Heineken lata 350ml cx c/ 12un', preco: 65, z: 1, img: 'https://savegnagoio.vteximg.com.br/arquivos/ids/495836/CervejaLataSleek350mlHeineken1.jpg' },
+      { g: 'lata', nome: 'Cerveja Budweiser lata 350ml cx c/ 12un', preco: 50, z: 1.3, img: 'https://savegnagoio.vteximg.com.br/arquivos/ids/451178/CervejaAmericanLagerLata350mlBud1.jpg' },
+    ];
+
+    const carrinho = {}; // índice do produto -> quantidade
+    const $ = id => document.getElementById(id);
+    const modal = $('modal');
+    const brl = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    // "Cerveja Heineken long 330ml cx c/ 6un" -> ["Heineken", "Long 330ml cx c/ 6un"]
+    const partes = nome => {
+      const [marca, ...resto] = nome.replace(/^Cerveja /, '').split(' ');
+      const desc = resto.join(' ');
+      return [marca, desc.charAt(0).toUpperCase() + desc.slice(1)];
+    };
+    const foto = (p, cls) => `<img src="${p.img}" alt="${p.nome}" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()"
+      class="${cls} object-contain mix-blend-multiply" style="transform:scale(${p.z})">`;
+
+    // full: ocupa a largura do card · sem full: versão compacta do carrinho
+    const stepper = (i, q, full) => `
+      <div class="flex ${full ? 'w-full' : 'shrink-0'} items-center rounded-2xl border border-gold/30 bg-gold/10">
+        <button data-i="${i}" data-d="-1" aria-label="${q > 1 ? 'Tirar uma' : 'Tirar do pedido'}" class="btn ${full ? 'h-12 flex-1' : 'h-11 w-11'} rounded-2xl text-2xl font-bold text-gold hover:bg-gold/15">−</button>
+        <span class="min-w-7 text-center text-lg font-bold">${q}</span>
+        <button data-i="${i}" data-d="1" aria-label="Mais uma" class="btn ${full ? 'h-12 flex-1' : 'h-11 w-11'} rounded-2xl text-2xl font-bold text-gold hover:bg-gold/15">+</button>
+      </div>`;
+
+    const card = (p, i, g) => {
+      const [marca, desc] = partes(p.nome);
+      const q = carrinho[i];
+      return `
+        <li class="flex flex-col rounded-[1.75rem] bg-coal p-3 shadow-soft ring-1 ${q ? 'ring-gold/50' : 'ring-white/5 hover:ring-gold/25'}">
+          <div class="relative grid aspect-square place-items-center overflow-hidden rounded-[1.25rem] bg-[radial-gradient(circle_at_50%_35%,#ffffff,#e8e1d3)] p-4">
+            ${foto(p, 'h-full w-full')}
+            <span class="absolute left-2.5 top-2.5 -rotate-3 rounded-full bg-ink/90 px-2.5 py-1 text-[11px] font-semibold text-gold">${g.pack}</span>
+            ${q ? `<span class="absolute right-2.5 top-2.5 grid h-8 min-w-8 place-items-center rounded-full bg-gold px-2 text-sm font-bold text-ink shadow-glow">${q}</span>` : ''}
+          </div>
+          <div class="flex flex-1 flex-col px-1 pb-1 pt-4">
+            <h3 class="text-lg font-bold leading-tight">${marca}</h3>
+            <p class="mt-1 text-[13px] leading-snug text-cream/50">${desc}</p>
+            <div class="mb-4 mt-auto pt-3">
+              <p class="text-xl font-extrabold text-gold">${brl(p.preco)}</p>
+              <p class="text-xs text-cream/45">sai ${brl(p.preco / g.un)} ${g.cada}</p>
+            </div>
+            ${q ? stepper(i, q, true) : `
+              <button data-i="${i}" data-d="1" aria-label="Quero essa: ${marca} ${desc}" class="btn flex h-12 w-full items-center justify-center gap-1.5 rounded-2xl bg-gold font-bold text-ink shadow-glow hover:bg-gold-soft"><span aria-hidden="true" class="text-xl leading-none">+</span>Quero essa</button>`}
+          </div>
+        </li>`;
+    };
+
+    function render() {
+      $('catalogo').innerHTML = grupos.map(g => `
+        <section id="${g.id}" class="scroll-mt-20 pt-10">
+          <div class="mb-5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <h3 class="text-xl font-bold">${g.titulo}</h3>
+            <p class="text-sm text-cream/50">${g.sub}</p>
+          </div>
+          <ul class="grid grid-cols-2 gap-4 sm:gap-5 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            ${produtos.map((p, i) => p.g === g.id ? card(p, i, g) : '').join('')}
+          </ul>
+        </section>`).join('');
+
+      const itens = Object.entries(carrinho).map(([i, q]) => ({ ...produtos[i], i, q }));
+      const qtd = itens.reduce((s, it) => s + it.q, 0);
+      const total = itens.reduce((s, it) => s + it.preco * it.q, 0);
+
+      $('barra').hidden = !qtd;
+      $('barraQtd').textContent = qtd;
+      $('barraTotal').textContent = $('total').textContent = brl(total);
+      // Carrinho vazio mostra um recado em vez de sumir na cara do cliente
+      $('cheio').hidden = $('subPedido').hidden = !qtd;
+      $('vazio').hidden = !!qtd;
+
+      $('itens').innerHTML = itens.map(it => {
+        const [marca, desc] = partes(it.nome);
+        return `
+        <li class="flex items-center gap-3 py-4">
+          <div class="grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-2xl bg-[radial-gradient(circle_at_50%_35%,#ffffff,#e8e1d3)] p-1.5">${foto(it, 'h-full w-full')}</div>
+          <div class="min-w-0 flex-1">
+            <p class="font-semibold leading-tight">${marca}</p>
+            <p class="text-sm leading-snug text-cream/50">${desc}</p>
+            <p class="mt-0.5 text-sm font-semibold text-gold">${brl(it.preco * it.q)}</p>
+          </div>
+          ${stepper(it.i, it.q)}
+        </li>`;
+      }).join('');
+
+      const msg = [
+        'Oi, Márcio e Paula! Tudo certo?',
+        '',
+        'Vi o cardápio no site e queria fazer esse pedido:',
+        '',
+        ...itens.map(it => `• *${it.q}x ${it.nome}*\n   ${brl(it.preco)} cada = ${brl(it.preco * it.q)}`),
+        '',
+        `*Total: ${brl(total)}*`,
+        '',
+        'Tem tudo aí? Se faltar alguma, pode me sugerir outra parecida.',
+        'Quanto fica a entrega e mais ou menos em quanto tempo chega?',
+        '',
+        'Valeu!',
+      ].join('\n');
+      $('finalizar').href = WA_CHAT + encodeURIComponent(msg);
+      $('finalizarWeb').href = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`;
+    }
+
+    let toastTimer;
+    function toast(msg) {
+      $('toast').textContent = msg;
+      $('toast').classList.add('mostra');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => $('toast').classList.remove('mostra'), 2400);
+    }
+
+    document.addEventListener('click', e => {
+      const b = e.target.closest('[data-d]');
+      if (!b) return;
+      const i = b.dataset.i, d = Number(b.dataset.d);
+      const lista = b.closest('#itens') ? '#itens' : '#catalogo';
+      const tinhaFoco = document.activeElement === b;
+      carrinho[i] = (carrinho[i] || 0) + d;
+      if (carrinho[i] <= 0) delete carrinho[i];
+      render();
+      // O render recria os botões: devolve o foco pra quem navega pelo teclado
+      if (tinhaFoco) (document.querySelector(`${lista} [data-i="${i}"][data-d="${d}"]`) || document.querySelector(`${lista} [data-i="${i}"]`))?.focus({ preventScroll: true });
+      if (d > 0 && !modal.open) {
+        const q = carrinho[i], [marca] = partes(produtos[i].nome);
+        toast(q === 1 ? `Boa! ${marca} foi pro carrinho 🍻` : `Mais uma caixa de ${marca}! Agora são ${q}.`);
+      }
+    });
+
+    // Fechar toca a animação de saída (CSS) e só depois fecha de verdade
+    function fecharCarrinho() { if (modal.open) modal.classList.add('saindo'); }
+    modal.addEventListener('animationend', () => { if (modal.classList.contains('saindo')) modal.close(); });
+    modal.addEventListener('close', () => modal.classList.remove('saindo'));
+    modal.addEventListener('cancel', e => { e.preventDefault(); fecharCarrinho(); }); // Esc também anima
+    $('abrir').onclick = () => modal.showModal();
+    $('fechar').onclick = $('voltar').onclick = fecharCarrinho;
+    // Toque fora fecha. Chaves de propósito: um onclick que retorna false cancela o clique (mataria o link do WhatsApp)
+    modal.onclick = e => { if (e.target === modal) fecharCarrinho(); };
+    // No computador, os links do número também abrem o app do WhatsApp
+    if (!CELULAR) document.querySelectorAll('a[href^="https://wa.me/"]').forEach(a => a.href = WA_CHAT);
+    $('fallback').hidden = CELULAR;
+
+    $('categorias').innerHTML = grupos.map(g => `
+      <a href="#${g.id}" class="btn inline-flex h-11 shrink-0 items-center rounded-full bg-coal px-5 text-sm font-medium text-cream/80 ring-1 ring-white/10 hover:text-gold hover:ring-gold/50">${g.titulo}</a>`).join('');
+
+    // Aberto/fechado pelo horário de Recife. ponytail: considera todos os dias; incluir folgas quando houver
+    const hora = Number(new Intl.DateTimeFormat('pt-BR', { timeZone: 'America/Recife', hour: 'numeric', hourCycle: 'h23' }).format(new Date()));
+    const aberto = hora >= 10 && hora < 18;
+    $('status').textContent = aberto ? 'Tamo aberto' : 'Fechado agora';
+    $('status').classList.add(...(aberto ? ['bg-emerald-400/10', 'text-emerald-300'] : ['bg-red-400/10', 'text-red-300']));
+    $('aviso').hidden = aberto;
+
+    render();
+  </script>
+</body>
+</html>
